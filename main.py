@@ -1,14 +1,7 @@
 import eel
-import pyttsx3
+import sys
 
 eel.init("www")
-engine = pyttsx3.init()
 
-@eel.expose
-def speak(text):
-    eel.jarvisSpeaking()  # 🔥 Trigger “speaking” animation
-    engine.say(text)
-    engine.runAndWait()
-    eel.jarvisIdle()  # 🌙 Return to idle glow
-
-eel.start('index.html', size=(1000, 600))
+edge_path = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+eel.start('index.html', mode=edge_path, host='localhost', port=8000, block=True)
