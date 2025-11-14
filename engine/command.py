@@ -1,54 +1,81 @@
+import time
 import pyttsx3
 import speech_recognition as sr
 import eel
-import time
+import traceback
+
+# Expose speak() so JS can call it if needed
+@eel.expose
 def speak(text):
-    text = str(text)
-    engine = pyttsx3.init('sapi5')
-    voices = engine.getProperty('voices') 
-    engine.setProperty('voice', voices[1].id)
-    engine.setProperty('rate', 174)
-    eel.DisplayMessage(text)
-    engine.say(text)
-    #eel.receiverText(text)
-    engine.runAndWait()
-    
+    try:
+        engine = pyttsx3.init('sapi5')
+        voices = engine.getProperty('voices')
+        index = 1 if len(voices) > 1 else 0
+        engine.setProperty('voice', voices[index].id)
+        engine.setProperty('rate', 174)
+        eel.DisplayMessage(text)
+        engine.say(str(text))
+        engine.runAndWait()
+        return True
+    except Exception as e:
+        print("Error in speak():", e)
+        traceback.print_exc()
+        return False
+
 @eel.expose
 def takecommand():
-    print("[DEBUG] takecommand() called")   # ✅ add this
-
     r = sr.Recognizer()
 
-    with sr.Microphone() as source:
-        print('listening....')
-        speak("Listening, please say something.")
-        eel.DisplayMessage('listening....')
-        r.pause_threshold = 1
-        r.adjust_for_ambient_noise(source)
-        
-        audio = r.listen(source, 10, 6)
-
     try:
-        print('recognizing')
-        eel.DisplayMessage('recognizing....')
-        query = r.recognize_google(audio, language='en-in')
-        print(f"user said: {query}")  # ✅ add this
-        eel.DisplayMessage(query)
-        time.sleep(2)
-        eel.ShowHood()
+        with sr.Microphone() as source:
+            print("Listening...")
+            try:
+                eel.DisplayMessage("Listening...")
+            except:
+                pass
+
+            r.adjust_for_ambient_noise(source, duration=0.8)
+            audio = r.listen(source, timeout=10, phrase_time_limit=8)
+
+        try:
+            print("Recognizing...")
+            try:
+                eel.DisplayMessage("Recognizing...")
+            except:
+                pass
+
+            query = r.recognize_google(audio, language="en-in")
+            print("User said:", query)
+
+            try:
+                eel.DisplayMessage(query)
+            except:
+                pass
+
+            return query.lower()
+
+        except sr.UnknownValueError:
+            print("Could not understand audio")
+            return ""
+        except sr.RequestError as e:
+            print("Speech recognition error:", e)
+            return ""
+
     except Exception as e:
-        print(f"[ERROR] {e}")  # ✅ show any recognition errors
+        print("Error in takecommand:", e)
+        traceback.print_exc()
         return ""
-    
-    return query.lower()
-eel.expose
-def allCommands():
-    print("[DEBUG] allCommands() triggered")  # ✅ add this
+
+@eel.expose
+def allCommands(message=1):
     query = takecommand()
-    print(f"[DEBUG] Query from takecommand(): {query}")
+    print(query)
 
     if "open" in query:
         from engine.features import openCommand
         openCommand(query)
+        time.sleep(2)
+        eel.ShowHood()
     else:
-        print("[DEBUG] Not run")
+        print("not run")
+        eel.ShowHood()
