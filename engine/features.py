@@ -103,6 +103,53 @@ def _open_with_path(path: str):
         print("Error launching:", path, e)
         return False
 
+def searchGoogle(query: str):
+    """
+    Search on Google for the given query.
+    """
+    if not query:
+        speak("What should I search for?")
+        return
+
+    q = _normalize(query)
+    if ASSISTANT_NAME:
+        q = q.replace(ASSISTANT_NAME.lower(), "")
+    q = q.replace("search", "").replace("on google", "").strip()
+
+    if not q:
+        speak("What should I search for on Google?")
+        return
+
+    search_url = "https://www.google.com/search?q=" + quote_plus(q)
+    speak(f"Searching for {q} on Google.")
+    webbrowser.open(search_url)
+
+def searchMedia(query: str):
+    """
+    Search for video or song on YouTube or Google based on the query.
+    """
+    if not query:
+        speak("What should I search for?")
+        return
+
+    q = _normalize(query)
+    if ASSISTANT_NAME:
+        q = q.replace(ASSISTANT_NAME.lower(), "")
+    q = q.replace("search", "").replace("play", "").replace("on youtube", "").replace("on google", "").strip()
+
+    if not q:
+        speak("What should I search for?")
+        return
+
+    if "on google" in query:
+        search_url = "https://www.google.com/search?q=" + quote_plus(q)
+        speak(f"Searching for {q} on Google.")
+    else:
+        search_url = "https://www.youtube.com/search?q=" + quote_plus(q)
+        speak(f"Searching for {q} on YouTube.")
+
+    webbrowser.open(search_url)
+
 def openCommand(query: str):
     """
     Improved openCommand:
@@ -162,7 +209,7 @@ def openCommand(query: str):
         speak(f"Opening {q}.")
         ok = _open_with_path(found_path)
         return "opened" if ok else "error"
-        
+
     # 3) If whitelist-only is enabled, reject unknown
     if WHITELIST_ONLY:
         speak(f"I don't recognize {q} on this PC.")
