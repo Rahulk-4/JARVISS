@@ -119,49 +119,47 @@ def allCommands(message=1):
     else:
         query = message
 
-    try:
-        if "open" in query:
-            from engine.features import openCommand
-            openCommand(query)
-            time.sleep(2)
-            eel.ShowHood()
-        elif "on youtube" in query or "play" in query and ("song" in query or "video" in query):
-            from engine.features import searchMedia
-            searchMedia(query)
-            eel.ShowHood()
-        elif "search" in query and "on google" in query:
-            from engine.features import searchGoogle
-            searchGoogle(query)
-            eel.ShowHood()
-            
-        elif "search" in query or "play" in query:
-            from engine.features import searchMedia
-            searchMedia(query)
-            eel.ShowHood()
-            
-        elif "send message" in query or "phone call" in query or "video call" in query:
-            from engine.features import findContact, whatsApp
-            message = ""
-            contact_no, name = findContact(query)
-            if(contact_no != 0):
+    # Split query on " and " to handle multiple commands
+    commands = query.split(" and ")
+    for cmd in commands:
+        cmd = cmd.strip()
+        if not cmd:
+            continue
+        try:
+            if "open" in cmd:
+                from engine.features import openCommand
+                openCommand(cmd)
+                time.sleep(2)
+            elif "on youtube" in cmd or "play" in cmd and ("song" in cmd or "video" in cmd):
+                from engine.features import searchMedia
+                searchMedia(cmd)
+            elif "search" in cmd and "on google" in cmd:
+                from engine.features import searchGoogle
+                searchGoogle(cmd)
 
-                if "send message" in query:
-                    message = 'message'
-                    speak("what message to send")
-                    query = takecommand()
-                    
-                elif "phone call" in query:
-                    message = 'call'
-                else:
-                    message = 'video call'
-                    
-                whatsApp(contact_no, query, message, name)
+            elif "search" in cmd or "play" in cmd:
+                from engine.features import searchMedia
+                searchMedia(cmd)
 
-            eel.ShowHood()
-        else:
-            from engine.features import geminai
-            geminai(query)
-            eel.ShowHood()
-    except:
-        print("error")
-        eel.ShowHood()
+            elif "send message" in cmd or "phone call" in cmd or "video call" in cmd or "whatsapp" in cmd:
+                from engine.features import findContact, whatsApp
+                msg_flag = ""
+                contact_no, name = findContact(cmd)
+                if(contact_no != 0):
+
+                    if "send message" in cmd:
+                        msg_flag = 'message'
+                        speak("what message to send")
+                        cmd = takecommand()
+
+                    elif "phone call" in cmd:
+                        msg_flag = 'call'
+                    else:
+                        msg_flag = 'video call'
+
+                    whatsApp(contact_no, cmd, msg_flag, name)
+            else:
+                speak("I didn't understand that command.")
+        except:
+            print("error processing command:", cmd)
+    eel.ShowHood()
