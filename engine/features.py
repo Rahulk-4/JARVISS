@@ -1,12 +1,21 @@
 import os
+from sqlite3 import Cursor
+import struct
 import subprocess
+import time
 import webbrowser
 import shlex
 from urllib.parse import quote_plus
 import eel
+import pyaudio
+import pyautogui
+import pywhatkit as kit
+import pvporcupine
 from playsound import playsound
 from engine.command import speak
 from engine.config import ASSISTANT_NAME
+from engine.db import get_sys_commands, get_web_commands, find_contact
+from engine.helper import extract_yt_term, remove_words
 
 #playing assistant sound function
 
@@ -63,6 +72,52 @@ APP_MAP = {
 
 }
 
+def PlayYoutube(query):
+    search_term = extract_yt_term(query)
+    speak("Playing "+search_term+" on YouTube")
+    kit.playonyt(search_term)
+
+def hotword():
+    while True:  # Outer loop to restart on error
+        porcupine=None
+        paud=None
+        audio_stream=None
+        try:
+            # pre trained keywords
+            porcupine=pvporcupine.create(keywords=["jarvis","alexa"])
+            paud=pyaudio.PyAudio()
+            audio_stream=paud.open(rate=porcupine.sample_rate,channels=1,format=pyaudio.paInt16,input=True,frames_per_buffer=porcupine.frame_length)
+
+            # loop for streaming
+            while True:
+                keyword=audio_stream.read(porcupine.frame_length)
+                keyword=struct.unpack_from("h"*porcupine.frame_length,keyword)
+
+                # processing keyword comes from mic
+                keyword_index=porcupine.process(keyword)
+
+                # checking first keyword detected for not
+                if keyword_index>=0:
+                    print("hotword detected")
+
+                    # pressing shortcut key win+j
+                    import pyautogui as autogui
+                    autogui.keyDown("win")
+                    autogui.press("j")
+                    time.sleep(2)
+                    autogui.keyUp("win")
+
+        except Exception as e:
+            print(f"Hotword detection error: {e}. Restarting...")
+            time.sleep(1)  # Brief pause before restart
+        finally:
+            if porcupine is not None:
+                porcupine.delete()
+            if audio_stream is not None:
+                audio_stream.close()
+            if paud is not None:
+                paud.terminate()
+                
 def _normalize(q: str) -> str:
     if not q:
         return ""
@@ -182,7 +237,18 @@ def openCommand(query: str):
         webbrowser.open(url)
         return "opened"
 
-    # 2) Exact or fuzzy lookup in APP_MAP (manual or auto)
+    # 2) Check database for web commands
+    web_commands = get_web_commands()
+    if q in web_commands:
+        url = web_commands[q]
+        if not _confirm_with_voice(f"Open {q} in your browser"):
+            speak("Cancelled.")
+            return "cancelled"
+        speak(f"Opening {q}.")
+        webbrowser.open(url)
+        return "opened"
+
+    # 3) Exact or fuzzy lookup in APP_MAP (manual or auto)
     # Try full match, then first token, then substring match
     found_path = None
     q_tokens = q.split()
@@ -210,6 +276,18 @@ def openCommand(query: str):
         ok = _open_with_path(found_path)
         return "opened" if ok else "error"
 
+    # 4) Check database for sys commands
+    sys_commands = get_sys_commands()
+    if q in sys_commands:
+        found_path = sys_commands[q]
+        if not _confirm_with_voice(f"Open {q}"):
+            speak("Cancelled.")
+            return "cancelled"
+        eel.DisplayMessage(f"Opening {q}.")
+        speak(f"Opening {q}.")
+        ok = _open_with_path(found_path)
+        return "opened" if ok else "error"
+                    
     # 3) If whitelist-only is enabled, reject unknown
     if WHITELIST_ONLY:
         speak(f"I don't recognize {q} on this PC.")
@@ -258,3 +336,51 @@ def openCommand(query: str):
         print("Error running command:", e)
         speak("I failed to run that command.")
         return "error"
+
+# find contact
+def findContact(query):
+    words_to_remove = [ASSISTANT_NAME, 'make', 'a', 'to', 'phone', 'call', 'send', 'message', 'wahtsapp', 'video']
+    query = remove_words(query, words_to_remove)
+
+    return find_contact(query)
+    
+    #
+def whatsApp(mobile_no, message, flag, name):
+    
+    if flag == 'message':
+        jarvis_message = "message send successfully to "+name
+        try:
+            # Use pywhatkit to send message instantly
+            kit.sendwhatmsg_instantly(mobile_no, message, wait_time=10, tab_close=True)
+            speak(jarvis_message)
+        except Exception as e:
+            speak("Failed to send message. Error: " + str(e))
+
+    elif flag == 'call':
+        jarvis_message = "calling to "+name
+        try:
+            # Open WhatsApp Desktop app with the phone number
+            whatsapp_url = f"whatsapp://send?phone={mobile_no}"
+            subprocess.run(['start', whatsapp_url], shell=True)
+            time.sleep(10)
+            # Navigate to call button
+            pyautogui.hotkey('tab')  # Navigate to call button
+            pyautogui.hotkey('enter')
+            speak(jarvis_message)
+        except Exception as e:
+            speak("Failed to make call. Error: " + str(e))
+
+    else:  # video call
+        jarvis_message = "starting video call with "+name
+        try:
+            # Open WhatsApp Desktop app with the phone number
+            whatsapp_url = f"whatsapp://send?phone={mobile_no}"
+            subprocess.run(['start', whatsapp_url], shell=True)
+            time.sleep(10)
+            # Navigate to video call button
+            pyautogui.hotkey('tab')
+            pyautogui.hotkey('tab')  # Navigate to video call button
+            pyautogui.hotkey('enter')
+            speak(jarvis_message)
+        except Exception as e:
+            speak("Failed to start video call. Error: " + str(e))
