@@ -1,4 +1,3 @@
-
 import time
 import pyttsx3
 import speech_recognition as sr
@@ -13,6 +12,7 @@ import os
 @eel.expose
 def speak(text):
     try:
+        text = str(text)
         engine = pyttsx3.init('sapi5')
         voices = engine.getProperty('voices')
         index = 1 if len(voices) > 1 else 0
@@ -162,7 +162,12 @@ def allCommands(message=1):
 
                     whatsApp(contact_no, cmd, msg_flag, name)
             else:
-                speak("I didn't understand that command.")
+                try:
+                    from engine.features import chatBot
+                    chatBot(cmd)
+                except Exception as e:
+                    print("ChatBot error:", e)
+                    speak("I didn't understand that command.")
         except:
             print("error processing command:", cmd)
     eel.ShowHood()

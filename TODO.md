@@ -3,3 +3,4 @@
 - [x] Test the integration by running the application
 - [x] Fix WhatsApp call and video call functionality by adjusting tab navigation
 - [x] Fix import error for geminai in command.py
+- [x] Add chat history functionality to save all chatbot conversations to database

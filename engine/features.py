@@ -16,6 +16,7 @@ from engine.command import speak
 from engine.config import ASSISTANT_NAME
 from engine.db import get_sys_commands, get_web_commands, find_contact
 from engine.helper import extract_yt_term, remove_words
+from hugchat import hugchat
 
 #playing assistant sound function
 
@@ -384,3 +385,19 @@ def whatsApp(mobile_no, message, flag, name):
             speak(jarvis_message)
         except Exception as e:
             speak("Failed to start video call. Error: " + str(e))
+            
+# chat bot
+def chatBot(query):
+    user_input = query.lower()
+    try:
+        chatbot = hugchat.ChatBot(cookie_path="engine\\cookies.json")
+        id = chatbot.new_conversation()
+        chatbot.change_conversation(id)
+        response = chatbot.chat(user_input)
+        print(response)
+        speak(response)
+        return response
+    except Exception as e:
+        print("ChatBot error:", e)
+        speak("Sorry, I couldn't connect to the chatbot. Please check your cookies or internet connection.")
+        return None
