@@ -20,6 +20,7 @@ def speak(text):
         engine.setProperty('rate', 174)
         eel.DisplayMessage(text)
         engine.say(str(text))
+        eel.receiverText(text)
         engine.runAndWait()
         return True
     except Exception as e:
@@ -116,8 +117,10 @@ def allCommands(message=1):
     if message == 1:
         query = takecommand()
         print(query)
+        eel.senderText(query)
     else:
         query = message
+        eel.senderText(query)
 
     # Split query on " and " to handle multiple commands
     commands = query.split(" and ")
