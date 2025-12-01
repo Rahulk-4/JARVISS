@@ -363,7 +363,7 @@ def whatsApp(mobile_no, message, flag, name):
             # Open WhatsApp Desktop app with the phone number
             whatsapp_url = f"whatsapp://send?phone={mobile_no}"
             subprocess.run(['start', whatsapp_url], shell=True)
-            time.sleep(10)
+            time.sleep(15)
             # Navigate to call button
             pyautogui.hotkey('tab')  # Navigate to call button
             pyautogui.hotkey('enter')
